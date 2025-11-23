@@ -17,6 +17,8 @@ class _ProdukTokoScreenState extends State<ProdukTokoScreen> with TickerProvider
   final String defaultImageUrl = "https://learncode.biz.id/images/no-image.png";
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  final TextEditingController _searchController = TextEditingController();
+  List<dynamic> filteredProduk = [];
 
   @override
   void initState() {
@@ -29,12 +31,14 @@ class _ProdukTokoScreenState extends State<ProdukTokoScreen> with TickerProvider
       parent: _animationController,
       curve: Curves.easeIn,
     );
+    _searchController.addListener(() => _filterProduk(_searchController.text));
     fetchProdukToko();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -45,6 +49,7 @@ class _ProdukTokoScreenState extends State<ProdukTokoScreen> with TickerProvider
       if (mounted) {
         setState(() {
           produk = data;
+          filteredProduk = data;
           isLoading = false;
         });
         _animationController.forward(from: 0);
@@ -64,6 +69,19 @@ class _ProdukTokoScreenState extends State<ProdukTokoScreen> with TickerProvider
     }
   }
 
+  void _filterProduk(String query) {
+    setState(() {
+      filteredProduk = query.isEmpty
+          ? produk
+          : produk
+              .where((p) => (p['nama_produk'] ?? '')
+                  .toString()
+                  .toLowerCase()
+                  .contains(query.toLowerCase()))
+              .toList();
+    });
+  }
+
   Widget _buildProductCard(dynamic item, int index) {
     final price = int.tryParse(item["harga"]?.toString() ?? "0") ?? 0;
     final stock = int.tryParse(item["stok"]?.toString() ?? "0") ?? 0;
@@ -71,133 +89,200 @@ class _ProdukTokoScreenState extends State<ProdukTokoScreen> with TickerProvider
     final kategori = item["nama_kategori"] ?? "";
     final images = item["images"] as List<dynamic>? ?? [];
     final imageUrl = images.isNotEmpty ? images[0]["url"] : defaultImageUrl;
-
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Hero(
-        tag: 'product-${item["id_produk"]}',
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => DetailProductScreen(idProduk: item["id_produk"].toString()),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Stack(
+    
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _fadeAnimation,
+          child: Transform.translate(
+            offset: Offset(0, (1 - _fadeAnimation.value) * 20),
+            child: Hero(
+              tag: 'product-${item["id_produk"]}',
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailProductScreen(idProduk: item["id_produk"].toString()),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 4),
+                        color: Colors.black.withOpacity(0.08),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: Image.network(
-                          imageUrl,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Colors.grey.shade200,
-                            child: Icon(Icons.image, size: 50, color: Colors.grey.shade400),
-                          ),
-                        ),
-                      ),
-                      if (isLowStock)
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              "Stok Rendah",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                      // IMAGE WITH BADGE
+                      Expanded(
+                        flex: 5,
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                              child: Image.network(
+                                imageUrl,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade200,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.image_not_supported,
+                                        size: 40,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: Colors.grey.shade200,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        color: Colors.blue.shade300,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
+                            if (isLowStock)
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade500,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    "Tersisa $stock",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (item["diskon"] != null && item["diskon"] > 0)
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.shade500,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    "${item["diskon"]}% OFF",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      
+                      // TEXT INFO
+                      Expanded(
+                        flex: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item["nama_produk"] ?? "-",
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    "Rp $price",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                  ),
+                                  if (item["harga_asli"] != null && item["harga_asli"] > price) ...[
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "Rp ${item["harga_asli"]}",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade500,
+                                        decoration: TextDecoration.lineThrough,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Stok: $stock",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isLowStock ? Colors.red : Colors.grey.shade600,
+                                  fontWeight: isLowStock ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (kategori.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    kategori,
+                                    style: TextStyle(color: Colors.grey.shade700, fontSize: 10),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
+                      )
                     ],
                   ),
                 ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item["nama_produk"] ?? "-",
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          "Rp $price",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade700,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              "Stok: $stock",
-                              style: TextStyle(
-                                color: isLowStock ? Colors.red.shade700 : Colors.grey.shade600,
-                                fontSize: 12,
-                                fontWeight: isLowStock ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                            if (kategori.isNotEmpty) ...[
-                              const Spacer(),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  kategori,
-                                  style: TextStyle(color: Colors.grey.shade700, fontSize: 10),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -269,55 +354,149 @@ class _ProdukTokoScreenState extends State<ProdukTokoScreen> with TickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          "Produk Toko",
-          style: TextStyle(
-            color: Colors.grey.shade800,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.grey.shade700),
-          onPressed: () => Navigator.pop(context),
-        ),
-
-        /// 🔥 Tambahkan tombol ADD disini (sama seperti kategori)
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add_circle, color: Colors.blue.shade700),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TambahProdukScreen()),
-              );
-              if (result == true) fetchProdukToko();
-            },
-          ),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const TambahProdukScreen()),
+          );
+          if (result == true) fetchProdukToko();
+        },
+        icon: const Icon(Icons.add),
+        label: const Text("Tambah Produk"),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
       ),
-
-      body: RefreshIndicator(
-        onRefresh: fetchProdukToko,
-        color: Colors.blue.shade700,
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : produk.isEmpty
-                ? _buildEmptyState()
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.65,
-                    ),
-                    itemCount: produk.length,
-                    itemBuilder: (_, index) => _buildProductCard(produk[index], index),
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // HEADER WITH GRADIENT
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.blue.shade700,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.blue.shade700,
+                      Colors.blue.shade500,
+                    ],
                   ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Produk Toko",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Kelola produk toko Anda",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // SEARCH BAR
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Cari produk...",
+                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, color: Colors.grey.shade600),
+                            onPressed: () {
+                              _searchController.clear();
+                              _filterProduk('');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // PRODUCT GRID
+          if (isLoading)
+            const SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 60),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            )
+          else if (filteredProduk.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 80, bottom: 20),
+                child: _buildEmptyState(),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 0.65,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildProductCard(filteredProduk[index], index),
+                  childCount: filteredProduk.length,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
