@@ -69,11 +69,13 @@ class StoreService {
       if (gambar != null) {
         final mimeType = lookupMimeType(gambar.path)?.split('/');
         if (mimeType != null) {
-          request.files.add(await http.MultipartFile.fromPath(
-            'gambar',
-            gambar.path,
-            contentType: MediaType(mimeType[0], mimeType[1]),
-          ));
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'gambar',
+              gambar.path,
+              contentType: MediaType(mimeType[0], mimeType[1]),
+            ),
+          );
         }
       }
 
@@ -85,10 +87,13 @@ class StoreService {
         return {
           "success": true,
           "message": data["message"] ?? "Toko berhasil dibuat",
-          "data": data["data"]
+          "data": data["data"],
         };
       } else {
-        return {"success": false, "message": "Server error (${response.statusCode})"};
+        return {
+          "success": false,
+          "message": "Server error (${response.statusCode})",
+        };
       }
     } catch (e) {
       return {"success": false, "message": "Terjadi kesalahan: $e"};
@@ -105,7 +110,7 @@ class StoreService {
         return {"success": false, "message": "Token tidak ditemukan"};
       }
 
-      final response = await http.delete(
+      final response = await http.post(
         Uri.parse("$baseUrl/stores/$idStore/delete"),
         headers: {
           "Accept": "application/json",

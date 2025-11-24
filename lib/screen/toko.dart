@@ -404,6 +404,32 @@ class _TokoScreenState extends State<TokoScreen> with SingleTickerProviderStateM
     );
   }
 
+  Future<bool> showDeleteStoreDialog(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text("Yakin ingin hapus toko?"),
+            content: const Text("Toko akan dihapus secara permanen."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text("Batal", style: TextStyle(color: Colors.grey.shade600)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text("Hapus"),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -452,37 +478,23 @@ class _TokoScreenState extends State<TokoScreen> with SingleTickerProviderStateM
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.white),
                       onPressed: () async {
-                        if (store!["id"] == null) return;
+                        print("Delete store icon clicked");
+                        if (store == null) {
+                          print("Store is null");
+                          return;
+                        }
+                        if (store!["id_toko"] == null) {
+                          print("Store id is null");
+                          return;
+                        }
 
-                        bool confirm = false;
-                        await showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            title: const Text("Hapus Toko?"),
-                            content: const Text("Toko akan dihapus secara permanen."),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text("Batal", style: TextStyle(color: Colors.grey.shade600)),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade700,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                onPressed: () {
-                                  confirm = true;
-                                  Navigator.pop(context);
-                                },
-                                child: const Text("Hapus"),
-                              ),
-                            ],
-                          ),
-                        );
-
+                        bool confirm = await showDeleteStoreDialog(context);
+                        print("Delete store confirmation result: \$confirm");
                         if (confirm) {
-                          final res = await _storeService.deleteStore(store!["id"].toString());
+                          print("User confirmed delete store");
+                          final res = await _storeService.deleteStore(store!["id_toko"].toString());
+                          print("Delete store response: \$res");
+
                           if (res["success"] == true) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -503,6 +515,8 @@ class _TokoScreenState extends State<TokoScreen> with SingleTickerProviderStateM
                               ),
                             );
                           }
+                        } else {
+                          print("User cancelled delete store");
                         }
                       },
                     ),

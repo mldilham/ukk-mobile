@@ -11,7 +11,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final LoginService _loginService = LoginService();
@@ -29,9 +30,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0)
+        .animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
     _animationController.forward();
   }
 
@@ -62,7 +62,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
 
     setState(() => _isLoading = false);
-
     if (!mounted) return;
 
     if (result["success"] == true) {
@@ -100,23 +99,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo
+                // ============================
+                //           LOGO
+                // ============================
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
                     shape: BoxShape.circle,
+                    color: Colors.blue.shade50,
                   ),
-                  child: Icon(
-                    Icons.lock_person_rounded,
-                    size: 50,
-                    color: Colors.blue.shade700,
+                  child: ClipOval(
+                    child: Image.asset(
+                      "assets/logo.png",   // <- logo dari assets
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // Title
                 const Text(
                   "Selamat Datang Di MarSchool",
                   style: TextStyle(
@@ -126,17 +127,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                 ),
                 const SizedBox(height: 8),
+
                 Text(
                   "Silahkan login untuk melanjutkan",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
 
-                // Login Form Card
+                // ============================
+                //   CARD FORM LOGIN
+                // ============================
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -153,29 +154,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                   child: Column(
                     children: [
-                      // Username
                       TextFormField(
                         controller: _usernameController,
                         decoration: InputDecoration(
                           labelText: "Username",
-                          prefixIcon: Icon(Icons.person_outline, color: Colors.blue.shade700),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          prefixIcon: Icon(Icons.person_outline,
+                              color: Colors.blue.shade700),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           filled: true,
                           fillColor: Colors.grey.shade50,
                         ),
                       ),
                       const SizedBox(height: 20),
 
-                      // Password
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           labelText: "Password",
-                          prefixIcon: Icon(Icons.lock_outline, color: Colors.blue.shade700),
+                          prefixIcon: Icon(Icons.lock_outline,
+                              color: Colors.blue.shade700),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: Colors.grey.shade600,
                             ),
                             onPressed: () {
@@ -184,27 +188,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               });
                             },
                           ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           filled: true,
                           fillColor: Colors.grey.shade50,
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      // Forgot Password
-                      // Align(
-                      //   alignment: Alignment.centerRight,
-                      //   child: TextButton(
-                      //     onPressed: () {},
-                      //     child: Text(
-                      //       "Lupa Password?",
-                      //       style: TextStyle(color: Colors.blue.shade700),
-                      //     ),
-                      //   ),
-                      // ),
                       const SizedBox(height: 24),
 
-                      // Login Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -212,28 +203,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue.shade700,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text("LOGIN", style: TextStyle(fontSize: 16)),
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
+                              : const Text("LOGIN",
+                                  style: TextStyle(fontSize: 16)),
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Register Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text("Belum punya akun?", style: TextStyle(color: Colors.grey.shade700)),
+                          Text("Belum punya akun?",
+                              style: TextStyle(color: Colors.grey.shade700)),
                           TextButton(
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                MaterialPageRoute(
+                                    builder: (_) => const RegisterScreen()),
                               );
                             },
-                            child: Text("Daftar di sini", style: TextStyle(color: Colors.blue.shade700)),
+                            child: Text("Daftar di sini",
+                                style: TextStyle(color: Colors.blue.shade700)),
                           ),
                         ],
                       ),

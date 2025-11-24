@@ -6,6 +6,8 @@ import 'package:ukk_mobile_maulid/screen/produk.dart';
 import 'package:ukk_mobile_maulid/screen/profile.dart';
 import 'package:ukk_mobile_maulid/screen/toko.dart';
 import '../services/ProductService.dart';
+import '../services/CategoriesService.dart';
+import '../services/CategoriesService.dart'; // Added import
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -101,14 +103,19 @@ class DashboardHome extends StatefulWidget {
   State<DashboardHome> createState() => _DashboardHomeState();
 }
 
-class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateMixin {
+class _DashboardHomeState extends State<DashboardHome>
+    with TickerProviderStateMixin {
   final ProductService _productService = ProductService();
+  final CategoryService _categoryService =
+      CategoryService(); // Added CategoryService instance
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
   List<dynamic> products = [];
   List<dynamic> filteredProducts = [];
+  List<dynamic> categories = []; // Store categories
+  int? selectedCategoryId; // Currently selected category filter
   bool isLoading = true;
   bool showStoreProducts = true;
 
@@ -125,8 +132,11 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
-    
-    _searchController.addListener(() => _filterProducts(_searchController.text));
+
+    _searchController.addListener(
+      () => _filterProducts(_searchController.text),
+    );
+    fetchCategories(); // Fetch categories
     fetchProducts();
   }
 
@@ -140,9 +150,15 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
   Future<void> fetchProducts() async {
     setState(() => isLoading = true);
 
-    List<dynamic> data = showStoreProducts
-        ? await _productService.getStoreProducts()
-        : await _productService.getProducts();
+    List<dynamic> data;
+
+    if (selectedCategoryId != null) {
+      data = await _productService.getProductsByCategory(selectedCategoryId!);
+    } else {
+      data = showStoreProducts
+          ? await _productService.getStoreProducts()
+          : await _productService.getProducts();
+    }
 
     if (!mounted) return;
     setState(() {
@@ -159,12 +175,29 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
       filteredProducts = query.isEmpty
           ? products
           : products
-              .where((p) => (p['nama_produk'] ?? '')
-                  .toString()
-                  .toLowerCase()
-                  .contains(query.toLowerCase()))
-              .toList();
+                .where(
+                  (p) => (p['nama_produk'] ?? '')
+                      .toString()
+                      .toLowerCase()
+                      .contains(query.toLowerCase()),
+                )
+                .toList();
     });
+  }
+
+  Future<void> fetchCategories() async {
+    final data = await _categoryService.getCategories();
+    if (!mounted) return;
+    setState(() {
+      categories = data;
+    });
+  }
+
+  void _onCategorySelected(int? categoryId) {
+    setState(() {
+      selectedCategoryId = categoryId;
+    });
+    fetchProducts();
   }
 
   void _toggleProductType(bool store) {
@@ -179,12 +212,13 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
   Widget _productCard(dynamic item, int index) {
     final price = int.tryParse(item["harga"]?.toString() ?? "0") ?? 0;
     final stock = int.tryParse(item["stok"]?.toString() ?? "0") ?? 0;
-    final imageUrl = item["images"] != null && 
-                     (item["images"] as List).isNotEmpty && 
-                     item["images"][0]?["url"] != null
+    final imageUrl =
+        item["images"] != null &&
+            (item["images"] as List).isNotEmpty &&
+            item["images"][0]?["url"] != null
         ? item["images"][0]["url"]
         : defaultImageUrl;
-    
+
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
@@ -213,7 +247,7 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                       spreadRadius: 0,
                       offset: const Offset(0, 4),
                       color: Colors.black.withOpacity(0.08),
-                    )
+                    ),
                   ],
                 ),
                 child: Column(
@@ -225,7 +259,9 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                       child: Stack(
                         children: [
                           ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
                             child: Image.network(
                               imageUrl,
                               width: double.infinity,
@@ -242,21 +278,27 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                                   ),
                                 );
                               },
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Container(
-                                  color: Colors.grey.shade200,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded /
-                                              loadingProgress.expectedTotalBytes!
-                                          : null,
-                                      color: Colors.blue.shade300,
-                                    ),
-                                  ),
-                                );
-                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          value:
+                                              loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                              : null,
+                                          color: Colors.blue.shade300,
+                                        ),
+                                      ),
+                                    );
+                                  },
                             ),
                           ),
                           if (stock < 10)
@@ -264,7 +306,10 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                               top: 8,
                               right: 8,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.red.shade500,
                                   borderRadius: BorderRadius.circular(12),
@@ -284,7 +329,10 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                               top: 8,
                               left: 8,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.orange.shade500,
                                   borderRadius: BorderRadius.circular(12),
@@ -302,7 +350,7 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                         ],
                       ),
                     ),
-                    
+
                     // TEXT INFO
                     Expanded(
                       flex: 4,
@@ -331,7 +379,8 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                                     color: Colors.blue.shade700,
                                   ),
                                 ),
-                                if (item["harga_asli"] != null && item["harga_asli"] > price) ...[
+                                if (item["harga_asli"] != null &&
+                                    item["harga_asli"] > price) ...[
                                   const SizedBox(width: 6),
                                   Text(
                                     "Rp ${item["harga_asli"]}",
@@ -349,8 +398,12 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                               "Stok: $stock",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: stock < 10 ? Colors.red : Colors.grey.shade600,
-                                fontWeight: stock < 10 ? FontWeight.bold : FontWeight.normal,
+                                color: stock < 10
+                                    ? Colors.red
+                                    : Colors.grey.shade600,
+                                fontWeight: stock < 10
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                             const Spacer(),
@@ -379,7 +432,7 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                           ],
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -429,10 +482,7 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          Colors.blue.shade700,
-                          Colors.blue.shade500,
-                        ],
+                        colors: [Colors.blue.shade700, Colors.blue.shade500],
                       ),
                     ),
                     child: Padding(
@@ -462,7 +512,7 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                   ),
                 ),
               ),
-              
+
               // SEARCH BAR
               SliverToBoxAdapter(
                 child: Padding(
@@ -483,10 +533,16 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                       controller: _searchController,
                       decoration: InputDecoration(
                         hintText: "Cari produk...",
-                        prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Colors.grey.shade600,
+                        ),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: Icon(Icons.clear, color: Colors.grey.shade600),
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: Colors.grey.shade600,
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   _filterProducts('');
@@ -499,13 +555,77 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-              
+
+              // CATEGORY FILTER UI
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 50,
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categories.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        // "Semua Kategori" button
+                        return GestureDetector(
+                          onTap: () => _onCategorySelected(null),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: selectedCategoryId == null ? Colors.blue.shade700 : Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.blue.shade700),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Semua Kategori',
+                                style: TextStyle(
+                                  color: selectedCategoryId == null ? Colors.white : Colors.blue.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      final category = categories[index - 1];
+                      final catId = category['id_kategori'] ?? category['id'];
+
+                      return GestureDetector(
+                        onTap: () => _onCategorySelected(catId),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedCategoryId == catId ? Colors.blue.shade700 : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.blue.shade700),
+                          ),
+                          child: Center(
+                            child: Text(
+                              category['nama_kategori'] ?? category['nama'] ?? 'Kategori',
+                              style: TextStyle(
+                                color: selectedCategoryId == catId ? Colors.white : Colors.blue.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
               // TOGGLE BUTTONS
               SliverToBoxAdapter(
                 child: Padding(
@@ -532,14 +652,18 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                               duration: const Duration(milliseconds: 200),
                               margin: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: showStoreProducts ? Colors.blue.shade700 : Colors.transparent,
+                                color: showStoreProducts
+                                    ? Colors.blue.shade700
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 "Produk Toko",
                                 style: TextStyle(
-                                  color: showStoreProducts ? Colors.white : Colors.grey.shade700,
+                                  color: showStoreProducts
+                                      ? Colors.white
+                                      : Colors.grey.shade700,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -553,14 +677,18 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                               duration: const Duration(milliseconds: 200),
                               margin: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: !showStoreProducts ? Colors.blue.shade700 : Colors.transparent,
+                                color: !showStoreProducts
+                                    ? Colors.blue.shade700
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 "Semua Produk",
                                 style: TextStyle(
-                                  color: !showStoreProducts ? Colors.white : Colors.grey.shade700,
+                                  color: !showStoreProducts
+                                      ? Colors.white
+                                      : Colors.grey.shade700,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -572,7 +700,7 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                   ),
                 ),
               ),
-              
+
               // PRODUCT GRID
               if (isLoading)
                 const SliverToBoxAdapter(
@@ -612,14 +740,16 @@ class _DashboardHomeState extends State<DashboardHome> with TickerProviderStateM
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: 0.65,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.65,
+                        ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => _productCard(filteredProducts[index], index),
+                      (context, index) =>
+                          _productCard(filteredProducts[index], index),
                       childCount: filteredProducts.length,
                     ),
                   ),

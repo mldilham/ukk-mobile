@@ -8,7 +8,8 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProviderStateMixin {
+class _RegisterScreenState extends State<RegisterScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController namaC = TextEditingController();
   final TextEditingController kontakC = TextEditingController();
   final TextEditingController usernameC = TextEditingController();
@@ -46,7 +47,6 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
   }
 
   void doRegister() async {
-    // Validasi input
     if (namaC.text.trim().isEmpty ||
         kontakC.text.trim().isEmpty ||
         usernameC.text.trim().isEmpty ||
@@ -68,7 +68,6 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
     );
 
     if (!mounted) return;
-
     setState(() => loading = false);
 
     if (result["success"] == true) {
@@ -107,37 +106,53 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 24),
-                // Logo
+
+                // ================================
+                //       LOGO DARI ASSETS
+                // ================================
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
                     shape: BoxShape.circle,
+                    color: Colors.blue.shade50,
                   ),
-                  child: Icon(Icons.person_add_rounded, size: 50, color: Colors.blue.shade700),
+                  child: ClipOval(
+                    child: Image.asset(
+                      "assets/logo.png",   // <- LOGO
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
+
                 const SizedBox(height: 24),
-                // Title
+
                 const Text(
                   "Buat Akun Baru",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   "Isi form di bawah untuk mendaftar",
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
 
-                // Form Card
+                // ================================
+                //            FORM CARD
+                // ================================
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      )
+                    ],
                   ),
                   child: Column(
                     children: [
@@ -152,41 +167,81 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
+                              Icon(Icons.error_outline,
+                                  color: Colors.red.shade600),
                               const SizedBox(width: 8),
-                              Expanded(child: Text(errorMsg!, style: TextStyle(color: Colors.red.shade600))),
+                              Expanded(
+                                child: Text(
+                                  errorMsg!,
+                                  style: TextStyle(color: Colors.red.shade600),
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      // Nama
-                      _buildTextField(controller: namaC, label: "Nama Lengkap", hint: "Masukkan nama lengkap", icon: Icons.person, keyboard: TextInputType.name),
+
+                      _buildTextField(
+                        controller: namaC,
+                        label: "Nama Lengkap",
+                        hint: "Masukkan nama lengkap",
+                        icon: Icons.person,
+                        keyboard: TextInputType.name,
+                      ),
                       const SizedBox(height: 16),
-                      // Kontak
-                      _buildTextField(controller: kontakC, label: "Nomor Kontak", hint: "Masukkan nomor telepon", icon: Icons.phone, keyboard: TextInputType.phone),
+
+                      _buildTextField(
+                        controller: kontakC,
+                        label: "Nomor Kontak",
+                        hint: "Masukkan nomor telepon",
+                        icon: Icons.phone,
+                        keyboard: TextInputType.phone,
+                      ),
                       const SizedBox(height: 16),
-                      // Username
-                      _buildTextField(controller: usernameC, label: "Username", hint: "Masukkan username", icon: Icons.alternate_email, keyboard: TextInputType.text),
+
+                      _buildTextField(
+                        controller: usernameC,
+                        label: "Username",
+                        hint: "Masukkan username",
+                        icon: Icons.alternate_email,
+                      ),
                       const SizedBox(height: 16),
-                      // Password
+
+                      // ================================
+                      //           PASSWORD
+                      // ================================
                       TextFormField(
                         controller: passwordC,
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           labelText: "Password",
                           hintText: "Masukkan password",
-                          prefixIcon: Icon(Icons.lock_outline, color: Colors.blue.shade700),
+                          prefixIcon:
+                              Icon(Icons.lock_outline, color: Colors.blue.shade700),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey.shade600),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.grey.shade600,
+                            ),
+                            onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
                           ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           filled: true,
                           fillColor: Colors.grey.shade50,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 16),
                         ),
                       ),
+
                       const SizedBox(height: 24),
-                      // Register Button
+
+                      // ================================
+                      //        BUTTON REGISTER
+                      // ================================
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -194,26 +249,41 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
                           onPressed: loading ? null : doRegister,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue.shade700,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: loading
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                              : const Text("DAFTAR", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 1.0)),
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2))
+                              : const Text("DAFTAR",
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600)),
                         ),
                       ),
+
                       const SizedBox(height: 24),
-                      // Login Link
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text("Sudah punya akun?", style: TextStyle(color: Colors.grey.shade700)),
+                          Text("Sudah punya akun?",
+                              style: TextStyle(color: Colors.grey.shade700)),
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: Text("Login di sini", style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.w600)),
-                          ),
+                            child: Text(
+                              "Login di sini",
+                              style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          )
                         ],
-                      ),
+                      )
                     ],
                   ),
                 ),
@@ -240,8 +310,14 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.blue.shade700),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue.shade700, width: 2)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
+        ),
         filled: true,
         fillColor: Colors.grey.shade50,
         contentPadding: const EdgeInsets.symmetric(vertical: 16),

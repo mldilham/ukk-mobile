@@ -33,12 +33,17 @@ class ProductService {
 
       final res = await http.get(
         Uri.parse("$baseUrl/stores/products"),
-        headers: {"Authorization": "Bearer $token", "Accept": "application/json"},
+        headers: {
+          "Authorization": "Bearer $token",
+          "Accept": "application/json",
+        },
       );
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        if (data["success"] == true && data["data"] != null && data["data"]["produk"] != null) {
+        if (data["success"] == true &&
+            data["data"] != null &&
+            data["data"]["produk"] != null) {
           return List<dynamic>.from(data["data"]["produk"]);
         }
       }
@@ -107,18 +112,18 @@ class ProductService {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       final token = prefs.getString("token") ?? "";
-      if (token.isEmpty) return {"success": false, "message": "Token tidak ditemukan"};
+      if (token.isEmpty)
+        return {"success": false, "message": "Token tidak ditemukan"};
 
       final uri = Uri.parse("$baseUrl/products/$id/delete");
 
-      // DELETE request langsung (sesuai API)
+      // Ubah menjadi request POST
       final res = await http.post(
         uri,
         headers: {
           "Accept": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: {"_method": "DELETE"}, // Laravel style
       );
 
       print("DELETE STATUS: ${res.statusCode}");
@@ -128,14 +133,40 @@ class ProductService {
         final data = jsonDecode(res.body);
         return {
           "success": data["success"] == true,
-          "message": data["message"] ?? (data["success"] == true ? "Produk berhasil dihapus" : "Gagal menghapus produk")
+          "message":
+              data["message"] ??
+              (data["success"] == true
+                  ? "Produk berhasil dihapus"
+                  : "Gagal menghapus produk"),
         };
       } else {
-        return {"success": false, "message": "Server error: ${res.statusCode}"};
+        return {
+          "success": false,
+          "message": "Server error: ${res.statusCode} - ${res.body}",
+        };
       }
     } catch (e) {
       print("Error deleteProduct: $e");
       return {"success": false, "message": "Gagal menghapus produk: $e"};
+    }
+  }
+
+  /// =============================
+  /// AMBIL PRODUK BERDASARKAN KATEGORI
+  /// =============================
+  Future<List<dynamic>> getProductsByCategory(int categoryId) async {
+    try {
+      final res = await http.get(
+        Uri.parse("$baseUrl/products/category/$categoryId"),
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return data["success"] == true ? data["data"] ?? [] : [];
+      }
+      return [];
+    } catch (e) {
+      print("Error getProductsByCategory: $e");
+      return [];
     }
   }
 }

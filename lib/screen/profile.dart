@@ -394,9 +394,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                     ),
                     const SizedBox(height: 16),
                     _buildProfileInfoCard(Icons.person, "Nama Lengkap", profileData!["nama"] ?? "-"),
-                    _buildProfileInfoCard(Icons.email, "Email", profileData!["email"] ?? "-"),
+                    _buildProfileInfoCard(Icons.email, "Username", profileData!["username"] ?? "-"),
                     _buildProfileInfoCard(Icons.phone, "Kontak", profileData!["kontak"] ?? "-"),
-                    _buildProfileInfoCard(Icons.store, "Toko", profileData!["nama_toko"] ?? "-"),
                     
                     const SizedBox(height: 30),
                     
